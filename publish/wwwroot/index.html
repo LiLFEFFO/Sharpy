@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CsExe - C# Class Tester</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.0/min/vs/loader.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#121212;--panel:#1E1E1E;--surface:#252525;--border:#333;--accent:#4FC3F7;--accent-dim:#2a8fb5;--text:#E0E0E0;--text-dim:#888;--text-bright:#fff;--error:#f44336;--success:#4caf50;--warn:#ff9800;--font:'Roboto',sans-serif;--sidebar-w:260px;--right-w:340px;--console-h:220px;--header-h:44px}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;overflow:hidden}
+input,select,textarea,button{font-family:var(--font);font-size:13px}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--panel)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#555}
+
+/* Header */
+.header{height:var(--header-h);background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;user-select:none;z-index:10}
+.header .logo{font-weight:700;font-size:16px;color:var(--accent);letter-spacing:1px;margin-right:4px}
+.header .logo span{color:var(--text-bright);font-weight:300}
+.header .spacer{flex:1}
+.header .file-tabs{display:flex;align-items:center;gap:0;overflow-x:auto;max-width:50%;flex:1;height:100%}
+.header .file-tab{padding:0 14px;height:100%;display:flex;align-items:center;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-dim);font-size:13px;white-space:nowrap;gap:6px;transition:none}
+.header .file-tab:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.header .file-tab.active{border-bottom-color:var(--accent);color:var(--text-bright);background:rgba(79,195,247,.08)}
+.header .file-tab .close{width:16px;height:16px;display:flex;align-items:center;justify-content:center;border-radius:2px;font-size:12px;color:var(--text-dim);cursor:pointer;opacity:0}
+.header .file-tab:hover .close{opacity:1}
+.header .file-tab .close:hover{background:rgba(255,255,255,.1);color:var(--text)}
+.btn{padding:6px 14px;border:none;border-radius:3px;cursor:pointer;font-size:13px;font-weight:500;background:var(--surface);color:var(--text);display:flex;align-items:center;gap:5px;transition:none;white-space:nowrap}
+.btn:hover{background:#333}
+.btn-primary{background:var(--accent);color:#000}
+.btn-primary:hover{background:#81d4fa}
+.btn-error{background:var(--error);color:#fff}
+.btn-error:hover{background:#e57373}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-icon{width:32px;height:32px;padding:0;justify-content:center;border-radius:3px;background:transparent;color:var(--text-dim)}
+.btn-icon:hover{background:rgba(255,255,255,.06);color:var(--text)}
+
+/* Layout */
+.app-body{display:flex;height:calc(100% - var(--header-h))}
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-header{padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.sidebar-header .badge{background:var(--surface);padding:1px 8px;border-radius:8px;font-size:10px;color:var(--text-dim)}
+.tree-container{flex:1;overflow-y:auto;padding:4px 0}
+.tree-item{display:flex;align-items:center;gap:6px;padding:5px 12px;cursor:pointer;font-size:13px;color:var(--text-dim);transition:none}
+.tree-item:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.tree-item.active{background:rgba(79,195,247,.12);color:var(--accent)}
+.tree-item .icon{width:16px;text-align:center;font-size:12px;flex-shrink:0}
+.tree-item .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tree-children{padding-left:16px}
+.tree-item .expand{width:16px;font-size:10px;color:var(--text-dim);cursor:pointer;flex-shrink:0;text-align:center}
+.tree-leaf{padding-left:28px}
+
+/* Main area */
+.main-area{flex:1;display:flex;flex-direction:column;min-width:0}
+.editor-container{flex:1;position:relative;overflow:hidden}
+.editor-container .drop-overlay{position:absolute;inset:0;background:rgba(79,195,247,.08);border:2px dashed var(--accent);display:none;align-items:center;justify-content:center;z-index:100;pointer-events:none;font-size:18px;color:var(--accent)}
+.editor-container.dragging .drop-overlay{display:flex}
+
+/* Right panel */
+.right-panel{width:var(--right-w);min-width:var(--right-w);background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.right-panel .panel-tabs{display:flex;border-bottom:1px solid var(--border)}
+.right-panel .panel-tab{padding:9px 14px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent;transition:none;text-transform:uppercase;letter-spacing:.5px}
+.right-panel .panel-tab:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.right-panel .panel-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.right-panel .panel-content{flex:1;overflow-y:auto;padding:12px}
+.panel-section{margin-bottom:16px}
+.panel-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim);margin-bottom:8px}
+.form-group{margin-bottom:10px}
+.form-group label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:3px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:6px 8px;background:var(--surface);border:1px solid var(--border);border-radius:3px;color:var(--text);outline:none}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent)}
+.form-group textarea{min-height:60px;resize:vertical;font-family:var(--font);font-size:12px}
+.form-group .param-input{display:flex;gap:4px;align-items:center}
+.form-group .param-input input{flex:1}
+.param-type-badge{font-size:10px;color:var(--text-dim);background:var(--surface);padding:2px 6px;border-radius:3px;white-space:nowrap}
+.method-item{padding:8px;background:var(--surface);border-radius:3px;margin-bottom:6px;cursor:pointer;border:1px solid transparent;transition:none}
+.method-item:hover{border-color:var(--border)}
+.method-item.active{border-color:var(--accent);background:rgba(79,195,247,.06)}
+.method-item .method-name{font-weight:500;font-size:13px;color:var(--text-bright)}
+.method-item .method-sig{font-size:11px;color:var(--text-dim);margin-top:2px}
+.method-item .method-badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;margin-right:4px}
+.badge-static{background:rgba(255,152,0,.15);color:var(--warn)}
+.badge-void{background:rgba(100,100,100,.2);color:var(--text-dim)}
+.badge-async{background:rgba(79,195,247,.15);color:var(--accent)}
+
+/* Console */
+.console{height:var(--console-h);min-height:100px;background:var(--panel);border-top:1px solid var(--border);display:flex;flex-direction:column}
+.console-header{display:flex;align-items:center;padding:0 12px;height:32px;border-bottom:1px solid var(--border)}
+.console-tab{padding:0 12px;height:100%;display:flex;align-items:center;font-size:12px;font-weight:500;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent;transition:none}
+.console-tab:hover{color:var(--text)}
+.console-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.console-actions{margin-left:auto;display:flex;gap:4px}
+.console-body{flex:1;overflow-y:auto;padding:8px 12px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:12px;line-height:1.5}
+.console-body .line{padding:1px 0;white-space:pre-wrap;word-break:break-all}
+.console-body .line.error{color:var(--error)}
+.console-body .line.success{color:var(--success)}
+.console-body .line.warn{color:var(--warn)}
+.console-body .line.info{color:var(--accent)}
+.console-body .line.dim{color:var(--text-dim)}
+.console-body .line.divider{border-top:1px solid var(--border);margin:4px 0;padding:0}
+
+/* Drop zone */
+.drop-zone{border:2px dashed var(--border);border-radius:4px;padding:20px;text-align:center;cursor:pointer;margin-bottom:10px;transition:none}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--accent);background:rgba(79,195,247,.04)}
+.drop-zone p{color:var(--text-dim);font-size:12px;margin-top:4px}
+.drop-zone .icon{font-size:24px;color:var(--text-dim)}
+
+/* Progress */
+.progress-bar{height:2px;background:var(--border);position:relative;overflow:hidden;display:none}
+.progress-bar.active{display:block}
+.progress-bar .fill{height:100%;background:var(--accent);width:0;transition:width .3s}
+.progress-bar .fill.indeterminate{width:30%;animation:slide 1.5s ease-in-out infinite}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(400%)}}
+
+/* Resize handles */
+.resize-handle{position:relative;z-index:5}
+.resize-handle.h{width:4px;cursor:col-resize;flex-shrink:0;background:transparent}
+.resize-handle.h:hover,.resize-handle.h.active{background:var(--accent-dim)}
+.resize-handle.v{height:4px;cursor:row-resize;flex-shrink:0;background:transparent}
+.resize-handle.v:hover,.resize-handle.v.active{background:var(--accent-dim)}
+
+/* Empty state */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-dim);padding:20px;text-align:center}
+.empty-state .icon{font-size:48px;margin-bottom:12px;opacity:.3}
+.empty-state h3{font-weight:400;font-size:16px;margin-bottom:6px}
+.empty-state p{font-size:13px;max-width:300px;line-height:1.5}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;right:20px;padding:10px 18px;border-radius:4px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;z-index:1000;max-width:400px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.toast.error{border-color:var(--error);border-left:3px solid var(--error)}
+.toast.success{border-color:var(--success);border-left:3px solid var(--success)}
+.toast.warn{border-color:var(--warn);border-left:3px solid var(--warn)}
+.toast.info{border-color:var(--accent);border-left:3px solid var(--accent)}
+
+/* History panel */
+.history-item{padding:8px;background:var(--surface);border-radius:3px;margin-bottom:4px;cursor:pointer;font-size:12px}
+.history-item:hover{background:#2a2a2a}
+.history-item .h-class{color:var(--accent);font-weight:500}
+.history-item .h-method{color:var(--text-bright)}
+.history-item .h-time{color:var(--text-dim);font-size:11px}
+.history-item .h-result{color:var(--success);font-size:11px;margin-top:2px}
+.history-item .h-error{color:var(--error);font-size:11px;margin-top:2px}
+
+/* Responsive tweaks */
+@media(max-width:1100px){.right-panel{width:280px;min-width:280px}}
+@media(max-width:800px){.right-panel{display:none}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Cs<span>Exe</span></div>
+  <button class="btn btn-sm" onclick="newFile()">+ New</button>
+  <button class="btn btn-sm" onclick="openFiles()">Open</button>
+  <button class="btn btn-sm" onclick="saveCurrentFile()">Save</button>
+  <div class="spacer"></div>
+  <button class="btn btn-sm" onclick="exportResults()">Export</button>
+  <button class="btn btn-primary btn-sm" onclick="compileAll()">Compile</button>
+</div>
+
+<div class="progress-bar" id="progressBar"><div class="fill" id="progressFill"></div></div>
+
+<div class="app-body">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span>Explorer</span>
+      <span class="badge" id="classCount">0</span>
+    </div>
+    <div class="tree-container" id="treeContainer">
+      <div class="empty-state" style="height:200px">
+        <div class="icon">&#128196;</div>
+        <p>Open or paste C# files, then click Compile</p>
+      </div>
+    </div>
+    <div style="padding:8px 12px;border-top:1px solid var(--border)">
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <div class="icon">&#128228;</div>
+        <p>Drop .cs files here or click to browse</p>
+      </div>
+      <input type="file" id="fileInput" accept=".cs" multiple style="display:none" onchange="handleFileSelect(event)">
+    </div>
+  </div>
+
+  <div class="resize-handle h" id="sidebarResizer"></div>
+
+  <!-- Main -->
+  <div class="main-area">
+    <div class="editor-container" id="editorContainer">
+      <div class="empty-state" id="editorEmpty">
+        <div class="icon">{ }</div>
+        <h3>No files open</h3>
+        <p>Create a new file, open a .cs file, or drag &amp; drop files here</p>
+      </div>
+      <div id="monacoContainer" style="display:none;height:100%"></div>
+      <div class="drop-overlay" id="dropOverlay">Drop C# files here</div>
+    </div>
+    <div class="resize-handle v" id="consoleResizer"></div>
+    <div class="console" id="console">
+      <div class="console-header">
+        <div class="console-tab active" data-tab="output" onclick="switchConsoleTab('output')">Output</div>
+        <div class="console-tab" data-tab="errors" onclick="switchConsoleTab('errors')">Errors</div>
+        <div class="console-tab" data-tab="history" onclick="switchConsoleTab('history')">History</div>
+        <div class="console-actions">
+          <button class="btn btn-icon btn-sm" onclick="clearConsole()" title="Clear">&#10005;</button>
+        </div>
+      </div>
+      <div class="console-body" id="consoleOutput"></div>
+    </div>
+  </div>
+
+  <div class="resize-handle h" id="rightResizer"></div>
+
+  <!-- Right panel -->
+  <div class="right-panel" id="rightPanel">
+    <div class="panel-tabs">
+      <div class="panel-tab active" data-tab="test" onclick="switchRightTab('test')">Test</div>
+      <div class="panel-tab" data-tab="props" onclick="switchRightTab('props')">Properties</div>
+    </div>
+    <div class="panel-content" id="testPanel">
+      <div class="empty-state" style="height:200px">
+        <div class="icon">&#9881;</div>
+        <p>Select a class and method from the Explorer to start testing</p>
+      </div>
+    </div>
+    <div class="panel-content" id="propsPanel" style="display:none">
+      <div class="empty-state" style="height:200px">
+        <div class="icon">&#128196;</div>
+        <p>Select a class to view its properties</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- App State ----
+const state = {
+  files: [],
+  currentFileIndex: -1,
+  classes: [],
+  assemblyToken: '',
+  selectedClass: null,
+  selectedMethod: null,
+  editor: null,
+  editorReady: false,
+  history: JSON.parse(localStorage.getItem('csexe_history') || '[]'),
+  fileCounter: 0,
+  paramValues: {}
+};
+
+// ---- Helpers ----
+function $(id) { return document.getElementById(id); }
+function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(msg, type='info') { const t=document.createElement('div'); t.className='toast '+type; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 3500); }
+
+function logToConsole(text, type='') {
+  const c = $('consoleOutput');
+  const d = document.createElement('div');
+  d.className = 'line ' + type;
+  d.textContent = text;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+}
+
+function clearConsole() {
+  $('consoleOutput').innerHTML = '';
+}
+
+function showProgress() { $('progressBar').classList.add('active'); $('progressFill').className = 'fill indeterminate'; }
+function hideProgress() { $('progressBar').classList.remove('active'); $('progressFill').className = 'fill'; }
+
+// ---- File Management ----
+function newFile() {
+  const n = ++state.fileCounter;
+  addFile(`Class${n}.cs`, `using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\npublic class Class${n}\n{\n    public int Add(int a, int b)\n    {\n        return a + b;\n    }\n}\n`);
+}
+
+function addFile(name, content) {
+  state.files.push({ name, content });
+  state.currentFileIndex = state.files.length - 1;
+  renderTabs();
+  renderEditor();
+  updateEditorEmpty();
+}
+
+function removeFile(idx) {
+  if (state.files.length <= 1) { toast('Cannot remove the last file', 'warn'); return; }
+  state.files.splice(idx, 1);
+  if (state.currentFileIndex >= state.files.length) state.currentFileIndex = state.files.length - 1;
+  else if (state.currentFileIndex === idx) state.currentFileIndex = Math.min(idx, state.files.length - 1);
+  renderTabs();
+  renderEditor();
+  updateEditorEmpty();
+}
+
+function switchFile(idx) {
+  if (idx === state.currentFileIndex) return;
+  if (state.editor && state.editorReady) {
+    state.files[state.currentFileIndex].content = state.editor.getValue();
+  }
+  state.currentFileIndex = idx;
+  renderTabs();
+  renderEditor();
+}
+
+function saveCurrentFile() {
+  if (state.files.length === 0 || state.currentFileIndex < 0) return;
+  if (state.editor && state.editorReady) {
+    state.files[state.currentFileIndex].content = state.editor.getValue();
+  }
+  const f = state.files[state.currentFileIndex];
+  const blob = new Blob([f.content], {type: 'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = f.name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('File saved', 'success');
+}
+
+function openFiles() {
+  $('fileInput').click();
+}
+
+function handleFileSelect(e) {
+  const files = e.target.files;
+  if (!files.length) return;
+  for (const f of files) {
+    if (!f.name.endsWith('.cs')) continue;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const existing = state.files.findIndex(ff => ff.name === f.name);
+      if (existing >= 0) {
+        state.files[existing].content = ev.target.result;
+        if (state.currentFileIndex === existing) renderEditor();
+      } else {
+        addFile(f.name, ev.target.result);
+      }
+    };
+    reader.readAsText(f);
+  }
+  e.target.value = '';
+}
+
+function renderTabs() {
+  const container = document.querySelector('.header .file-tabs');
+  if (!container) return;
+  if (state.files.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = state.files.map((f, i) =>
+    `<div class="file-tab ${i === state.currentFileIndex ? 'active' : ''}" onclick="switchFile(${i})">
+      <span>${escapeHtml(f.name)}</span>
+      <span class="close" onclick="event.stopPropagation();removeFile(${i})">&#10005;</span>
+    </div>`
+  ).join('');
+  container.scrollLeft = container.scrollWidth;
+}
+
+function updateEditorEmpty() {
+  $('editorEmpty').style.display = state.files.length > 0 ? 'none' : 'flex';
+  $('monacoContainer').style.display = state.files.length > 0 ? 'block' : 'none';
+}
+
+// ---- Monaco Editor ----
+require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.0/min/vs' } });
+require(['vs/editor/editor.main'], function() {
+  monaco.editor.defineTheme('csexe-dark', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      { token: 'comment', foreground: '6A9955' },
+      { token: 'keyword', foreground: '4FC3F7' },
+      { token: 'string', foreground: 'CE9178' },
+      { token: 'number', foreground: 'B5CEA8' },
+      { token: 'type', foreground: '4FC3F7' },
+      { token: 'class', foreground: '4FC3F7' },
+    ],
+    colors: {
+      'editor.background': '#1E1E1E',
+      'editor.foreground': '#D4D4D4',
+      'editor.lineHighlightBackground': '#2A2A2A',
+      'editor.selectionBackground': '#264F78',
+      'editor.inactiveSelectionBackground': '#3A3D41',
+      'editorCursor.foreground': '#4FC3F7',
+      'editorLineNumber.foreground': '#858585',
+      'editorLineNumber.activeForeground': '#C6C6C6',
+    }
+  });
+
+  const container = $('monacoContainer');
+  state.editor = monaco.editor.create(container, {
+    language: 'csharp',
+    theme: 'csexe-dark',
+    fontSize: 14,
+    fontFamily: 'Cascadia Code, Fira Code, Consolas, monospace',
+    lineNumbers: 'on',
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    automaticLayout: true,
+    tabSize: 4,
+    renderWhitespace: 'selection',
+    bracketPairColorization: { enabled: true },
+    padding: { top: 8 },
+    smoothScrolling: false,
+    cursorBlinking: 'solid',
+  });
+  state.editorReady = true;
+
+  state.editor.onDidChangeModelContent(() => {
+    if (state.currentFileIndex >= 0 && state.currentFileIndex < state.files.length) {
+      state.files[state.currentFileIndex].content = state.editor.getValue();
+    }
+  });
+
+  // Paste handler
+  container.addEventListener('paste', function(e) {
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    if (text && text.includes('using ') && text.includes('class ') && text.includes('{')) {
+      // Likely C# code, prompt to create file
+      setTimeout(() => {
+        if (confirm('Pasted content appears to be C# code. Create a new file from it?')) {
+          const name = prompt('File name:', `Pasted${++state.fileCounter}.cs`);
+          if (name) { addFile(name, text); }
+        }
+      }, 100);
+    }
+  });
+
+  // Drag and drop on editor
+  container.addEventListener('dragover', e => { e.preventDefault(); $('editorContainer').classList.add('dragging'); });
+  container.addEventListener('dragleave', e => { $('editorContainer').classList.remove('dragging'); });
+  container.addEventListener('drop', e => {
+    e.preventDefault();
+    $('editorContainer').classList.remove('dragging');
+    if (e.dataTransfer.files.length) {
+      handleFileSelect({ target: { files: e.dataTransfer.files, value: '' } });
+    } else {
+      const text = e.dataTransfer.getData('text');
+      if (text) {
+        const name = prompt('File name:', `Dropped${++state.fileCounter}.cs`);
+        if (name) addFile(name, text);
+      }
+    }
+  });
+
+  renderEditor();
+});
+
+function renderEditor() {
+  if (!state.editorReady || state.files.length === 0 || state.currentFileIndex < 0) return;
+  const file = state.files[state.currentFileIndex];
+  if (!file) return;
+  const current = state.editor.getModel();
+  if (current && current.uri.path === '/' + file.name) return;
+  const uri = monaco.Uri.parse('file:///' + file.name);
+  let model = monaco.editor.getModel(uri);
+  if (!model) {
+    model = monaco.editor.createModel(file.content, 'csharp', uri);
+  }
+  state.editor.setModel(model);
+  updateEditorEmpty();
+}
+
+// ---- Paste whole C# file handler ----
+document.addEventListener('paste', function(e) {
+  if (e.target.closest('.monaco-editor')) return;
+  if (e.target.closest('input') || e.target.closest('textarea') || e.target.closest('select')) return;
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  if (text && text.includes('class ') && text.includes('{') && text.includes('using ') && text.includes(';')) {
+    const name = prompt('Paste as new file:', `Class${++state.fileCounter}.cs`);
+    if (name) {
+      e.preventDefault();
+      addFile(name, text);
+      toast('File created from clipboard', 'success');
+    }
+  }
+});
+
+// ---- Compile ----
+async function compileAll() {
+  if (state.files.length === 0) { toast('No files to compile', 'warn'); return; }
+  if (state.editor && state.editorReady && state.currentFileIndex >= 0) {
+    state.files[state.currentFileIndex].content = state.editor.getValue();
+  }
+
+  showProgress();
+  clearConsole();
+  logToConsole('Compiling ' + state.files.length + ' file(s)...', 'info');
+  const files = state.files.map(f => ({ fileName: f.name, content: f.content }));
+
+  try {
+    const res = await fetch('/api/compile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      logToConsole('Compilation succeeded', 'success');
+      state.classes = data.classes || [];
+      state.assemblyToken = data.assemblyToken;
+      state.paramValues = {};
+      $('classCount').textContent = state.classes.length;
+      renderTree();
+      if (state.classes.length > 0) {
+        selectClass(state.classes[0]);
+      }
+      if (data.errors && data.errors.length) {
+        data.errors.forEach(e => logToConsole('[WARN] ' + e, 'warn'));
+      }
+    } else {
+      logToConsole('Compilation failed', 'error');
+      (data.errors || []).forEach(e => logToConsole(e, 'error'));
+      $('classCount').textContent = '0';
+      state.classes = [];
+      state.assemblyToken = '';
+      renderTree();
+    }
+  } catch (err) {
+    logToConsole('Connection error: ' + err.message, 'error');
+    toast('Failed to connect to backend. Is the server running?', 'error');
+  }
+  hideProgress();
+}
+
+// ---- Tree ----
+function renderTree() {
+  const container = $('treeContainer');
+  if (state.classes.length === 0) {
+    container.innerHTML = '<div class="empty-state" style="height:200px"><div class="icon">&#128196;</div><p>Open or paste C# files, then click Compile</p></div>';
+    return;
+  }
+
+  let html = '';
+  for (const cls of state.classes) {
+    const active = state.selectedClass && state.selectedClass.fullName === cls.fullName;
+    html += `<div class="tree-item ${active ? 'active' : ''}" onclick="selectClassByFull('${escapeHtml(cls.fullName)}')">
+      <span class="icon">${cls.isStatic ? '&#9881;' : cls.isAbstract ? '&#9641;' : '&#9723;'}</span>
+      <span class="name">${escapeHtml(cls.name)}</span>
+    </div>`;
+
+    if (active) {
+      html += '<div class="tree-children">';
+      for (const m of cls.methods) {
+        const mActive = state.selectedMethod && state.selectedMethod.name === m.name;
+        html += `<div class="tree-item tree-leaf ${mActive ? 'active' : ''}" onclick="selectMethod('${escapeHtml(m.name)}')">
+          <span class="icon">&#9654;</span>
+          <span class="name">${escapeHtml(m.name)}</span>
+        </div>`;
+      }
+      html += '</div>';
+    }
+  }
+  container.innerHTML = html;
+}
+
+function selectClassByFull(fullName) {
+  const cls = state.classes.find(c => c.fullName === fullName);
+  if (cls) selectClass(cls);
+}
+
+function selectClass(cls) {
+  state.selectedClass = cls;
+  state.selectedMethod = null;
+  renderTree();
+  renderTestPanel();
+  renderPropsPanel();
+}
+
+function selectMethod(name) {
+  if (!state.selectedClass) return;
+  const m = state.selectedClass.methods.find(m => m.name === name);
+  if (m) {
+    state.selectedMethod = m;
+    renderTree();
+    renderTestPanel();
+  }
+}
+
+function formatType(t) {
+  const map = { 'Int32': 'int', 'Int64': 'long', 'Single': 'float', 'Double': 'double', 'Boolean': 'bool', 'String': 'string', 'Decimal': 'decimal', 'Char': 'char', 'Byte': 'byte', 'DateTime': 'DateTime', 'Guid': 'Guid' };
+  return map[t] || t;
+}
+
+function getDefaultParamValue(param) {
+  if (param.defaultValue !== null && param.defaultValue !== undefined) {
+    if (param.type === 'string') return `"${param.defaultValue}"`;
+    return param.defaultValue;
+  }
+  const t = param.type;
+  if (t === 'string') return '"text"';
+  if (t === 'int' || t === 'long' || t === 'short' || t === 'byte') return '0';
+  if (t === 'float' || t === 'double' || t === 'decimal') return '0';
+  if (t === 'bool') return 'false';
+  if (t === 'char') return '"A"';
+  if (t === 'DateTime') return '"2024-01-01"';
+  if (t === 'Guid') return '"00000000-0000-0000-0000-000000000000"';
+  if (param.isEnum && param.enumValues && param.enumValues.length) return param.enumValues[0];
+  if (param.isCollection) return '[]';
+  return 'null';
+}
+
+// ---- Test Panel ----
+function saveParamValues() {
+  if (!state.selectedClass || !state.selectedMethod) return;
+  const cls = state.selectedClass;
+  const m = state.selectedMethod;
+  const prefix = `${cls.fullName}_${m.name}_`;
+  const ctorPrefix = `${cls.fullName}_ctor_`;
+  for (let i = 0; ; i++) {
+    const el = document.getElementById(`param_${i}`);
+    if (!el) break;
+    state.paramValues[`${prefix}${i}`] = el.value;
+  }
+  for (let i = 0; ; i++) {
+    const el = document.getElementById(`ctor_${i}`);
+    if (!el) break;
+    state.paramValues[`${ctorPrefix}${i}`] = el.value;
+  }
+}
+
+function getParamValue(clsName, methodName, prefix, idx, defaultValue) {
+  const key = `${clsName}_${methodName}_${prefix}_${idx}`;
+  const ctorKey = `${clsName}_ctor_${idx}`;
+  if (prefix === 'param') {
+    const v = state.paramValues[`${clsName}_${methodName}_${idx}`];
+    if (v !== undefined) return v;
+  } else {
+    const v = state.paramValues[`${clsName}_ctor_${idx}`];
+    if (v !== undefined) return v;
+  }
+  return defaultValue;
+}
+
+function renderTestPanel() {
+  saveParamValues();
+  const container = $('testPanel');
+  if (!state.selectedClass) {
+    container.innerHTML = '<div class="empty-state" style="height:200px"><div class="icon">&#9881;</div><p>Select a class from the Explorer</p></div>';
+    return;
+  }
+
+  const cls = state.selectedClass;
+  let html = `<div class="panel-section">
+    <div class="panel-section-title">Class: ${escapeHtml(cls.name)}</div>
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">${escapeHtml(cls.fullName)}</div>
+  </div>`;
+
+  if (cls.constructors && cls.constructors.length > 0) {
+    const ctor = cls.constructors[0];
+    if (ctor.parameters && ctor.parameters.length > 0) {
+      html += `<div class="panel-section">
+        <div class="panel-section-title">Constructor Parameters</div>`;
+      ctor.parameters.forEach((p, i) => {
+        const val = getParamValue(cls.fullName, '', 'ctor', i, getDefaultParamValue(p));
+        html += `<div class="form-group">
+          <label>${escapeHtml(p.name)} <span class="param-type-badge">${escapeHtml(p.type)}</span></label>
+          <input type="text" id="ctor_${i}" value="${escapeHtml(val)}" placeholder="${escapeHtml(p.type)}" oninput="state.paramValues['${cls.fullName}_ctor_${i}']=this.value">
+        </div>`;
+      });
+      html += `</div>`;
+    }
+  }
+
+  html += `<div class="panel-section">
+    <div class="panel-section-title">Methods (${cls.methods.length})</div>`;
+  for (const m of cls.methods) {
+    const active = state.selectedMethod && state.selectedMethod.name === m.name;
+    const sig = m.parameters.map(p => `${escapeHtml(p.type)} ${escapeHtml(p.name)}`).join(', ');
+    html += `<div class="method-item ${active ? 'active' : ''}" onclick="selectMethod('${escapeHtml(m.name)}')">
+      <div class="method-name">
+        ${m.isStatic ? '<span class="method-badge badge-static">static</span>' : ''}
+        ${m.isAsync ? '<span class="method-badge badge-async">async</span>' : ''}
+        ${m.isVoid ? '<span class="method-badge badge-void">void</span>' : ''}
+        ${escapeHtml(m.returnType)} ${escapeHtml(m.name)}
+      </div>
+      <div class="method-sig">(${sig || 'no params'})</div>
+    </div>`;
+  }
+  html += `</div>`;
+
+  if (state.selectedMethod) {
+    const m = state.selectedMethod;
+    html += `<div class="panel-section">
+      <div class="panel-section-title">${escapeHtml(m.name)} Parameters</div>`;
+    if (m.parameters.length === 0) {
+      html += `<div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">No parameters</div>`;
+    } else {
+      m.parameters.forEach((p, i) => {
+        const inputId = `param_${i}`;
+        const val = getParamValue(cls.fullName, m.name, 'param', i, getDefaultParamValue(p));
+        html += `<div class="form-group">
+          <label>${escapeHtml(p.name)} <span class="param-type-badge">${escapeHtml(p.type)}</span></label>`;
+        if (p.isEnum && p.enumValues && p.enumValues.length > 0) {
+          html += `<select id="${inputId}" onchange="state.paramValues['${cls.fullName}_${m.name}_${i}']=this.value">`;
+          for (const ev of p.enumValues) {
+            html += `<option value="${escapeHtml(ev)}"${val===ev?' selected':''}>${escapeHtml(ev)}</option>`;
+          }
+          html += `</select>`;
+        } else if (p.type === 'bool') {
+          html += `<select id="${inputId}" onchange="state.paramValues['${cls.fullName}_${m.name}_${i}']=this.value">
+            <option value="true"${val==='true'?' selected':''}>true</option>
+            <option value="false"${val==='false'?' selected':''}>false</option>
+          </select>`;
+        } else {
+          html += `<input type="text" id="${inputId}" value="${escapeHtml(val)}" placeholder="${escapeHtml(p.type)}" oninput="state.paramValues['${cls.fullName}_${m.name}_${i}']=this.value">`;
+        }
+        if (p.isCollection) {
+          html += `<div style="font-size:11px;color:var(--text-dim);margin-top:2px">JSON array (e.g., [1, 2, 3])</div>`;
+        }
+        if (p.typeFullName && !p.isEnum && !['int','long','float','double','bool','string','char','byte','short','uint','ulong','decimal','DateTime','Guid','object','void'].includes(p.type)) {
+          html += `<div style="font-size:11px;color:var(--text-dim);margin-top:2px">JSON object expected</div>`;
+        }
+        html += `</div>`;
+      });
+    }
+    html += `</div>`;
+
+    html += `<button class="btn btn-primary" style="width:100%" onclick="executeMethod()">Execute ${escapeHtml(m.name)}</button>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function renderPropsPanel() {
+  const container = $('propsPanel');
+  if (!state.selectedClass) {
+    container.innerHTML = '<div class="empty-state" style="height:200px"><div class="icon">&#128196;</div><p>Select a class to view its properties</p></div>';
+    return;
+  }
+  const cls = state.selectedClass;
+  if (cls.properties.length === 0) {
+    container.innerHTML = `<div class="panel-section"><div class="panel-section-title">Properties</div><div style="font-size:12px;color:var(--text-dim)">No public properties</div></div>`;
+    return;
+  }
+  let html = `<div class="panel-section"><div class="panel-section-title">Properties (${cls.properties.length})</div>`;
+  for (const p of cls.properties) {
+    html += `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span style="color:var(--accent)">${escapeHtml(p.type)}</span>
+      <span style="color:var(--text-bright)"> ${escapeHtml(p.name)}</span>
+      <span style="font-size:11px;color:var(--text-dim)"> {${p.canRead ? ' get;' : ''}${p.canWrite ? ' set;' : ''} }</span>
+    </div>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// ---- Execute ----
+async function executeMethod() {
+  if (!state.selectedClass || !state.selectedMethod) { toast('Select a class and method', 'warn'); return; }
+  if (!state.assemblyToken) { toast('Compile the code first', 'warn'); return; }
+
+  if (state.editor && state.editorReady && state.currentFileIndex >= 0) {
+    state.files[state.currentFileIndex].content = state.editor.getValue();
+  }
+
+  const cls = state.selectedClass;
+  const m = state.selectedMethod;
+
+  // Collect constructor args
+  const ctorArgs = [];
+  if (cls.constructors && cls.constructors.length > 0) {
+    const ctor = cls.constructors[0];
+    for (let i = 0; i < ctor.parameters.length; i++) {
+      const el = document.getElementById(`ctor_${i}`);
+      if (el) ctorArgs.push(parseParamValue(el.value, ctor.parameters[i]));
+    }
+  }
+
+  // Collect method args
+  const methodArgs = [];
+  for (let i = 0; i < m.parameters.length; i++) {
+    const el = document.getElementById(`param_${i}`);
+    if (el) methodArgs.push(parseParamValue(el.value, m.parameters[i]));
+  }
+
+  saveParamValues();
+  showProgress();
+  logToConsole(`Executing ${cls.name}.${m.name}()...`, 'info');
+
+  try {
+    const res = await fetch('/api/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        assemblyToken: state.assemblyToken,
+        className: cls.fullName,
+        methodName: m.name,
+        constructorArgs: ctorArgs,
+        methodArgs: methodArgs
+      })
+    });
+    const data = await res.json();
+
+    // Add to history
+    const histEntry = {
+      time: new Date().toISOString(),
+      className: cls.name,
+      methodName: m.name,
+      success: data.success,
+      result: data.result,
+      resultType: data.resultType,
+      error: data.error,
+      executionTimeMs: data.executionTimeMs
+    };
+    state.history.unshift(histEntry);
+    if (state.history.length > 200) state.history.pop();
+    try { localStorage.setItem('csexe_history', JSON.stringify(state.history)); } catch {}
+
+    if (data.success) {
+      logToConsole(`> Result (${data.executionTimeMs}ms):`, 'success');
+      if (data.output) {
+        const lines = data.output.split('\n');
+        for (const l of lines) logToConsole(l, 'info');
+      }
+      if (data.result !== null && data.result !== undefined) {
+        try {
+          const formatted = JSON.stringify(JSON.parse(data.result), null, 2);
+          logToConsole(formatted, '');
+        } catch {
+          logToConsole(String(data.result), '');
+        }
+      } else {
+        logToConsole('(void / no return value)', 'dim');
+      }
+    } else {
+      logToConsole(`ERROR (${data.executionTimeMs}ms): ${data.error}`, 'error');
+      if (data.stackTrace) {
+        logToConsole(data.stackTrace, 'dim');
+      }
+    }
+  } catch (err) {
+    logToConsole('Connection error: ' + err.message, 'error');
+    toast('Failed to connect', 'error');
+  }
+  hideProgress();
+}
+
+function parseParamValue(value, param) {
+  if (!value || value === 'null') return null;
+  if (param.type === 'string') {
+    // Remove surrounding quotes if present
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      return value.slice(1, -1);
+    }
+    return value;
+  }
+  if (param.type === 'int') return parseInt(value, 10);
+  if (param.type === 'long') return parseFloat(value);
+  if (param.type === 'float') return parseFloat(value);
+  if (param.type === 'double') return parseFloat(value);
+  if (param.type === 'decimal') return parseFloat(value);
+  if (param.type === 'bool') return value === 'true';
+  if (param.isEnum) return value;
+  if (param.isCollection || (param.typeFullName && !['int','long','float','double','bool','string','char','byte','short','uint','ulong','decimal','DateTime','Guid','object','void'].includes(param.type))) {
+    try { return JSON.parse(value); } catch { return value; }
+  }
+  return value;
+}
+
+// ---- Tab switching ----
+function switchRightTab(tab) {
+  document.querySelectorAll('.right-panel .panel-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  $('testPanel').style.display = tab === 'test' ? 'block' : 'none';
+  $('propsPanel').style.display = tab === 'props' ? 'block' : 'none';
+  if (tab === 'test') renderTestPanel();
+  if (tab === 'props') renderPropsPanel();
+}
+
+function switchConsoleTab(tab) {
+  document.querySelectorAll('.console-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  const body = $('consoleOutput');
+  body.innerHTML = '';
+  if (tab === 'output') {
+    // keep as is
+  } else if (tab === 'errors') {
+    logToConsole('Compilation errors will appear here after compiling.', 'dim');
+  } else if (tab === 'history') {
+    if (state.history.length === 0) {
+      logToConsole('No invocation history yet.', 'dim');
+    } else {
+      // Render the history as clickable items
+      body.style.fontFamily = '';
+      for (const h of state.history) {
+        const d = document.createElement('div');
+        d.className = 'history-item';
+        d.innerHTML = `<span class="h-class">${escapeHtml(h.className)}</span>.<span class="h-method">${escapeHtml(h.methodName)}</span>
+          <span class="h-time">${new Date(h.time).toLocaleTimeString()} (${h.executionTimeMs}ms)</span>
+          ${h.success
+            ? `<div class="h-result">&#10003; ${escapeHtml(h.result ? h.result.substring(0, 100) : '(void)')}</div>`
+            : `<div class="h-error">&#10007; ${escapeHtml(h.error || 'Unknown error')}</div>`
+          }`;
+        d.onclick = function() {
+          // Re-run this invocation
+          logToConsole(`History: ${h.className}.${h.methodName}`, 'info');
+        };
+        body.appendChild(d);
+      }
+    }
+  }
+}
+
+// ---- Export ----
+function exportResults() {
+  if (state.history.length === 0) { toast('No results to export', 'warn'); return; }
+  const data = JSON.stringify({
+    exportedAt: new Date().toISOString(),
+    files: state.files.map(f => ({ name: f.name })),
+    history: state.history
+  }, null, 2);
+  const blob = new Blob([data], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'csexe-results.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Results exported', 'success');
+}
+
+// ---- Session Persistence ----
+window.addEventListener('beforeunload', function() {
+  if (state.editor && state.editorReady && state.currentFileIndex >= 0) {
+    state.files[state.currentFileIndex].content = state.editor.getValue();
+  }
+  try {
+    localStorage.setItem('csexe_files', JSON.stringify(state.files.map(f => ({ name: f.name, content: f.content }))));
+    localStorage.setItem('csexe_current', String(state.currentFileIndex));
+  } catch {}
+});
+
+function restoreSession() {
+  try {
+    const files = JSON.parse(localStorage.getItem('csexe_files') || '[]');
+    const current = parseInt(localStorage.getItem('csexe_current') || '-1');
+    if (files.length > 0) {
+      state.files = files;
+      state.currentFileIndex = current >= 0 && current < files.length ? current : 0;
+      renderTabs();
+      renderEditor();
+      updateEditorEmpty();
+    }
+  } catch {}
+}
+
+// ---- Init ----
+restoreSession();
+
+// ---- Resize handlers ----
+(function() {
+  let isResizing = false, startX, startY, startW, startH;
+
+  function initResize(handle, direction) {
+    handle.addEventListener('mousedown', function(e) {
+      isResizing = true;
+      handle.classList.add('active');
+      if (direction === 'h') {
+        startX = e.clientX;
+        if (handle.id === 'sidebarResizer') startW = parseInt(getComputedStyle(document.querySelector('.sidebar')).width, 10);
+        else startW = parseInt(getComputedStyle(document.querySelector('.right-panel')).width, 10);
+      } else {
+        startY = e.clientY;
+        startH = parseInt(getComputedStyle(document.querySelector('.console')).height, 10);
+      }
+      document.body.style.cursor = direction === 'h' ? 'col-resize' : 'row-resize';
+      document.body.style.userSelect = 'none';
+    });
+  }
+
+  document.addEventListener('mousemove', function(e) {
+    if (!isResizing) return;
+    if (startH !== undefined) {
+      const delta = startY - e.clientY;
+      const newH = Math.max(100, Math.min(500, startH + delta));
+      document.querySelector('.console').style.height = newH + 'px';
+      document.querySelector('.main-area').style.height = '';
+    } else if (startW !== undefined) {
+      const delta = e.clientX - startX;
+      const sidebar = document.querySelector('.sidebar');
+      const right = document.querySelector('.right-panel');
+      if (sidebar && handleId === 'sidebarResizer') {
+        const newW = Math.max(180, Math.min(400, startW + delta));
+        sidebar.style.width = newW + 'px';
+      } else if (right) {
+        const newW = Math.max(240, Math.min(500, startW - delta));
+        right.style.width = newW + 'px';
+      }
+    }
+  });
+
+  let handleId = '';
+  document.addEventListener('mouseup', function() {
+    if (!isResizing) return;
+    isResizing = false;
+    startX = startY = startW = startH = undefined;
+    handleId = '';
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    document.querySelectorAll('.resize-handle').forEach(h => h.classList.remove('active'));
+  });
+
+  document.querySelectorAll('.resize-handle.h').forEach(h => {
+    h.addEventListener('mousedown', function(e) {
+      isResizing = true;
+      this.classList.add('active');
+      handleId = this.id;
+      startX = e.clientX;
+      const sidebar = document.querySelector('.sidebar');
+      const right = document.querySelector('.right-panel');
+      if (this.id === 'sidebarResizer') startW = sidebar ? parseFloat(getComputedStyle(sidebar).width) : 260;
+      else startW = right ? parseFloat(getComputedStyle(right).width) : 340;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+  });
+
+  document.querySelector('.resize-handle.v').addEventListener('mousedown', function(e) {
+    isResizing = true;
+    this.classList.add('active');
+    startY = e.clientY;
+    startH = parseFloat(getComputedStyle(document.querySelector('.console')).height);
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  });
+})();
+</script>
+</body>
+</html>

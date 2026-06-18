@@ -1,0 +1,30 @@
+using Sharpy.Models;
+using Sharpy.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSingleton<CompilerService>();
+builder.Services.AddSingleton<ExecutorService>();
+builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
+    p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+
+var app = builder.Build();
+app.UseCors();
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.MapPost("/api/compile", async (CompileRequest req, CompilerService compiler) =>
+{
+    var result = await compiler.CompileAsync(req.Files);
+    return Results.Ok(result);
+});
+
+app.MapPost("/api/execute", (ExecuteRequest req, ExecutorService executor) =>
+{
+    var result = executor.Execute(req);
+    return Results.Ok(result);
+});
+
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok", timestamp = DateTime.UtcNow }));
+
+app.Run();

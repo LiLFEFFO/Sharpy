@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "dgSpecHash": "1ajxpNf3Oqk=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\feder\\Desktop\\C#Exe\\Sharpy.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\feder\\.nuget\\packages\\microsoft.codeanalysis.analyzers\\3.3.4\\microsoft.codeanalysis.analyzers.3.3.4.nupkg.sha512",
+    "C:\\Users\\feder\\.nuget\\packages\\microsoft.codeanalysis.common\\4.12.0\\microsoft.codeanalysis.common.4.12.0.nupkg.sha512",
+    "C:\\Users\\feder\\.nuget\\packages\\microsoft.codeanalysis.csharp\\4.12.0\\microsoft.codeanalysis.csharp.4.12.0.nupkg.sha512",
+    "C:\\Users\\feder\\.nuget\\packages\\system.collections.immutable\\8.0.0\\system.collections.immutable.8.0.0.nupkg.sha512",
+    "C:\\Users\\feder\\.nuget\\packages\\system.reflection.metadata\\8.0.0\\system.reflection.metadata.8.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
