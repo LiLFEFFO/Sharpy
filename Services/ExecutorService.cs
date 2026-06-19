@@ -9,10 +9,12 @@ namespace Sharpy.Services;
 public class ExecutorService
 {
     private readonly CompilerService _compiler;
+    private readonly SessionManager _sessionManager;
 
-    public ExecutorService(CompilerService compiler)
+    public ExecutorService(CompilerService compiler, SessionManager sessionManager)
     {
         _compiler = compiler;
+        _sessionManager = sessionManager;
     }
 
     public ExecuteResponse Execute(ExecuteRequest request)
@@ -30,55 +32,86 @@ public class ExecutorService
                 return result;
             }
 
-            System.Reflection.Assembly assembly;
-            try
+            var sessionId = _sessionManager.GetOrCreateSessionId(request.SessionId);
+            result.SessionId = sessionId;
+
+            Assembly? assembly;
+            object? instance;
+
+            var cached = _sessionManager.TryGetEntry(sessionId, request.AssemblyToken, request.ClassName, out assembly, out instance);
+
+            if (!cached || request.ResetInstance)
             {
-                assembly = System.Reflection.Assembly.Load(compilation.AssemblyBytes, compilation.PdbBytes);
+                try
+                {
+                    assembly = Assembly.Load(compilation.AssemblyBytes, compilation.PdbBytes);
+                }
+                catch
+                {
+                    assembly = Assembly.Load(compilation.AssemblyBytes);
+                }
+
+                var type = assembly.GetType(request.ClassName);
+                if (type == null)
+                {
+                    type = assembly.GetExportedTypes()
+                        .FirstOrDefault(t => t.FullName == request.ClassName || t.Name == request.ClassName);
+                }
+
+                if (type == null)
+                {
+                    result.Success = false;
+                    result.Error = $"Class '{request.ClassName}' not found.";
+                    return result;
+                }
+
+                instance = null;
+                if (!type.IsAbstract || type.IsSealed)
+                {
+                    var ctors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+                    if (ctors.Length > 0)
+                    {
+                        var ctorParams = request.ConstructorArgs
+                            .Select((arg, i) =>
+                            {
+                                var ctor = ctors.FirstOrDefault();
+                                if (ctor == null) return arg;
+                                var pars = ctor.GetParameters();
+                                if (i < pars.Length) return ConvertArg(arg, pars[i].ParameterType);
+                                return arg;
+                            }).ToArray();
+
+                        instance = Activator.CreateInstance(type, ctorParams);
+                    }
+                    else
+                    {
+                        instance = Activator.CreateInstance(type);
+                    }
+                }
+
+                _sessionManager.SetEntry(sessionId, request.AssemblyToken, request.ClassName, assembly, instance);
+                result.InstanceCreated = true;
             }
-            catch
+            else
             {
-                assembly = System.Reflection.Assembly.Load(compilation.AssemblyBytes);
+                result.InstanceCreated = false;
             }
 
-            var type = assembly.GetType(request.ClassName);
-            if (type == null)
+            var typeForMethods = assembly!.GetType(request.ClassName);
+            if (typeForMethods == null)
             {
-                type = assembly.GetExportedTypes()
+                typeForMethods = assembly.GetExportedTypes()
                     .FirstOrDefault(t => t.FullName == request.ClassName || t.Name == request.ClassName);
             }
 
-            if (type == null)
+            if (typeForMethods == null)
             {
                 result.Success = false;
                 result.Error = $"Class '{request.ClassName}' not found.";
                 return result;
             }
 
-            object? instance = null;
-            if (!type.IsAbstract || type.IsSealed)
-            {
-                var ctors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
-                if (ctors.Length > 0)
-                {
-                    var ctorParams = request.ConstructorArgs
-                        .Select((arg, i) =>
-                        {
-                            var ctor = ctors.FirstOrDefault();
-                            if (ctor == null) return arg;
-                            var pars = ctor.GetParameters();
-                            if (i < pars.Length) return ConvertArg(arg, pars[i].ParameterType);
-                            return arg;
-                        }).ToArray();
-
-                    instance = Activator.CreateInstance(type, ctorParams);
-                }
-                else
-                {
-                    instance = Activator.CreateInstance(type);
-                }
-            }
-
-            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
+            var methods = typeForMethods.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
                 .Where(m => m.Name == request.MethodName && !m.IsSpecialName)
                 .ToArray();
 

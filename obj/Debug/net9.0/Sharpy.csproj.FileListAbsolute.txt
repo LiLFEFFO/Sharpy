@@ -48,7 +48,6 @@ C:\Users\feder\Desktop\C#Exe\obj\Debug\net9.0\rjimswa.dswa.cache.json
 C:\Users\feder\Desktop\C#Exe\obj\Debug\net9.0\rjsmrazor.dswa.cache.json
 C:\Users\feder\Desktop\C#Exe\obj\Debug\net9.0\rjsmcshtml.dswa.cache.json
 C:\Users\feder\Desktop\C#Exe\obj\Debug\net9.0\scopedcss\bundle\Sharpy.styles.css
-C:\Users\feder\Desktop\C#Exe\obj\Debug\net9.0\compressed\8pp60ljtl6-h1c5lkz94k.gz
 C:\Users\feder\Desktop\C#Exe\obj\Debug\net9.0\staticwebassets.build.json
 C:\Users\feder\Desktop\C#Exe\obj\Debug\net9.0\staticwebassets.build.json.cache
 C:\Users\feder\Desktop\C#Exe\obj\Debug\net9.0\staticwebassets.development.json
@@ -59,3 +58,5 @@ C:\Users\feder\Desktop\C#Exe\obj\Debug\net9.0\refint\Sharpy.dll
 C:\Users\feder\Desktop\C#Exe\obj\Debug\net9.0\Sharpy.pdb
 C:\Users\feder\Desktop\C#Exe\obj\Debug\net9.0\Sharpy.genruntimeconfig.cache
 C:\Users\feder\Desktop\C#Exe\obj\Debug\net9.0\ref\Sharpy.dll
+C:\Users\feder\Desktop\C#Exe\obj\Debug\net9.0\Sharpy.sourcelink.json
+C:\Users\feder\Desktop\C#Exe\obj\Debug\net9.0\compressed\8pp60ljtl6-1jaxkoh72p.gz

@@ -246,6 +246,7 @@ const state = {
   selectedMethod: null,
   editor: null,
   editorReady: false,
+  sessionId: null,
   history: JSON.parse(localStorage.getItem('sharpy_history') || '[]'),
   fileCounter: 0,
   paramValues: {}
@@ -541,6 +542,7 @@ async function compileAll() {
       logToConsole('Compilation succeeded', 'success');
       state.classes = data.classes || [];
       state.assemblyToken = data.assemblyToken;
+      state.sessionId = null; // fresh session for new assembly
       state.paramValues = {};
       $('classCount').textContent = state.classes.length;
       renderTree();
@@ -758,7 +760,10 @@ function renderTestPanel() {
     }
     html += `</div>`;
 
-    html += `<button class="btn btn-primary" style="width:100%" onclick="executeMethod()">Execute ${escapeHtml(m.name)}</button>`;
+    html += `<div style="display:flex;gap:6px">
+      <button class="btn btn-primary" style="flex:1" onclick="executeMethod(false)">Execute ${escapeHtml(m.name)}</button>
+      <button class="btn btn-sm" style="flex-shrink:0" onclick="executeMethod(true)" title="Reset instance before executing">&#8635; Reset &amp; Run</button>
+    </div>`;
   }
 
   container.innerHTML = html;
@@ -788,7 +793,7 @@ function renderPropsPanel() {
 }
 
 // ---- Execute ----
-async function executeMethod() {
+async function executeMethod(resetInstance) {
   if (!state.selectedClass || !state.selectedMethod) { toast('Select a class and method', 'warn'); return; }
   if (!state.assemblyToken) { toast('Compile the code first', 'warn'); return; }
 
@@ -829,10 +834,17 @@ async function executeMethod() {
         className: cls.fullName,
         methodName: m.name,
         constructorArgs: ctorArgs,
-        methodArgs: methodArgs
+        methodArgs: methodArgs,
+        sessionId: state.sessionId,
+        resetInstance: !!resetInstance
       })
     });
     const data = await res.json();
+
+    // Store sessionId for subsequent calls
+    if (data.sessionId) {
+      state.sessionId = data.sessionId;
+    }
 
     // Add to history
     const histEntry = {
@@ -851,6 +863,11 @@ async function executeMethod() {
 
     if (data.success) {
       logToConsole(`> Result (${data.executionTimeMs}ms):`, 'success');
+      if (data.instanceCreated) {
+        logToConsole('  [new instance created]', 'info');
+      } else {
+        logToConsole('  [reused existing instance]', 'dim');
+      }
       if (data.output) {
         const lines = data.output.split('\n');
         for (const l of lines) logToConsole(l, 'info');

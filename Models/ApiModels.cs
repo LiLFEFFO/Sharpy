@@ -78,6 +78,8 @@ public class ExecuteRequest
     public string MethodName { get; set; } = string.Empty;
     public List<object?> ConstructorArgs { get; set; } = new();
     public List<object?> MethodArgs { get; set; } = new();
+    public string? SessionId { get; set; }
+    public bool ResetInstance { get; set; }
 }
 
 public class ExecuteResponse
@@ -89,6 +91,15 @@ public class ExecuteResponse
     public string? Error { get; set; }
     public string? StackTrace { get; set; }
     public long ExecutionTimeMs { get; set; }
+    public string? SessionId { get; set; }
+    public bool InstanceCreated { get; set; }
+}
+
+public class SessionResetRequest
+{
+    public string? SessionId { get; set; }
+    public string? AssemblyToken { get; set; }
+    public string? ClassName { get; set; }
 }
 
 public static class JsonOpts
